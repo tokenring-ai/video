@@ -1,0 +1,31 @@
+{
+  "name": "@tokenring-ai/video",
+  "version": "0.2.0",
+  "description": "Video generation for TokenRing media workflows.",
+  "dependencies": {
+    "@tokenring-ai/agent": "workspace:*",
+    "@tokenring-ai/ai-client": "workspace:*",
+    "@tokenring-ai/app": "workspace:*",
+    "@tokenring-ai/chat": "workspace:*",
+    "@tokenring-ai/media-library": "workspace:*",
+    "@tokenring-ai/rpc": "workspace:*",
+    "@tokenring-ai/utility": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  },
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "vitest": "^4.1.1",
+    "typescript": "^6.0.2"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc --noEmit",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  }
+}
