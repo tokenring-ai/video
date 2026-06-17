@@ -1,7 +1,7 @@
 import { CommandFailedError } from "@tokenring-ai/agent/AgentError";
 import type { AgentCommandInputSchema, AgentCommandInputType, TokenRingAgentCommand } from "@tokenring-ai/agent/types";
-import VideoGenerationService from "../../../VideoGenerationService.ts";
 import { VideoGenerationState } from "../../../state/VideoGenerationState.ts";
+import VideoGenerationService from "../../../VideoGenerationService.ts";
 
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
 

@@ -24,7 +24,7 @@ const description = "Generate an AI video and save it to the shared media librar
 
 const inputSchema = z.object({
   prompt: z.string().describe("Description of the video to generate"),
-  aspectRatio: z.enum(["square", "tall", "wide"]).default("wide").exactOptional(),
+  aspectRatio: z.enum(["square", "tall", "wide"]).default("wide"),
   resolution: z
     .string()
     .regex(/^\d+x\d+$/)

@@ -6,7 +6,7 @@ import type { TokenRingService } from "@tokenring-ai/app/types";
 import MediaLibraryService from "@tokenring-ai/media-library/MediaLibraryService";
 import deepClone from "@tokenring-ai/utility/object/deepClone";
 import { Buffer } from "node:buffer";
-import { VideoGenerationAgentConfigSchema, type ParsedVideoGenerationConfig } from "./schema.ts";
+import { type ParsedVideoGenerationConfig, VideoGenerationAgentConfigSchema } from "./schema.ts";
 import { VideoGenerationState } from "./state/VideoGenerationState.ts";
 
 export type VideoAspectRatio = "square" | "tall" | "wide";
