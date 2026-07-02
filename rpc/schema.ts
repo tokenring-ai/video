@@ -1,29 +1,11 @@
 import { AgentNotFoundSchema } from "@tokenring-ai/agent/schema";
-import { MediaLibraryEntrySchema } from "@tokenring-ai/media-library/schema";
 import type { RPCSchema } from "@tokenring-ai/rpc/types";
 import { z } from "zod";
-
-export const VideoIndexEntrySchema = MediaLibraryEntrySchema.extend({
-  kind: z.literal("video"),
-});
-
-export type VideoIndexEntry = z.output<typeof VideoIndexEntrySchema>;
 
 export default {
   name: "Video Generation RPC",
   path: "/rpc/video-generation",
   methods: {
-    getVideos: {
-      type: "query",
-      input: z.object({
-        search: z.string().exactOptional(),
-        limit: z.number().int().positive().default(200).exactOptional(),
-      }),
-      result: z.object({
-        videos: z.array(VideoIndexEntrySchema),
-        count: z.number(),
-      }),
-    },
     generateVideo: {
       type: "mutation",
       input: z.object({
