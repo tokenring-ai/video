@@ -65,7 +65,7 @@ export default class VideoGenerationService implements TokenRingService {
 
     for (const modelName of this.options.defaultModels) {
       const foundModels = Object.keys(videoModelRegistry.getModelSpecsByRequirements(modelName));
-      if (foundModels.length > 0) {
+      if (foundModels[0]) {
         this.defaultModel = foundModels[0];
         break;
       }
@@ -110,7 +110,10 @@ export default class VideoGenerationService implements TokenRingService {
     await agent.requireServiceByType(MediaLibraryService).reindex(agent, ["video"]);
   }
 
-  async generateVideo(options: GenerateVideoOptions, agent: Agent): Promise<{
+  async generateVideo(
+    options: GenerateVideoOptions,
+    agent: Agent,
+  ): Promise<{
     mediaType: string;
     fileName: string;
     filePath: string;

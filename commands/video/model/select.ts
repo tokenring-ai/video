@@ -35,7 +35,7 @@ async function execute({ agent }: AgentCommandInputType<typeof inputSchema>): Pr
       tree,
     },
   });
-  if (selection) {
+  if (selection?.[0]) {
     videoService.setModel(selection[0], agent);
     return `Video model set to ${selection[0]}`;
   }

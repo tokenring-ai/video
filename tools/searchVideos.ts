@@ -6,7 +6,7 @@ import { z } from "zod";
 const name = "video_search";
 const displayName = "Video Generation/searchVideos";
 
-async function execute({ query, limit  }: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
+async function execute({ query, limit }: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
   const mediaLibrary = agent.requireServiceByType(MediaLibraryService);
   const results = await mediaLibrary.search(query, { kind: "video", limit }, agent);
 
