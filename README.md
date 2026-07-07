@@ -1,12 +1,10 @@
 # @tokenring-ai/video
 
-AI-powered video generation backed by the shared media library.
+Video generation for TokenRing media workflows.
 
 ## Overview
 
-This package provides video generation for the TokenRing ecosystem. It integrates with
-`VideoGenerationModelRegistry` from `@tokenring-ai/ai-client` and stores generated videos through
-`@tokenring-ai/media-library`.
+The `@tokenring-ai/video` package provides video generation capabilities for the TokenRing ecosystem. It integrates with `VideoGenerationModelRegistry` from `@tokenring-ai/ai-client` and stores generated videos through `@tokenring-ai/media-library`.
 
 ## Key Features
 
@@ -16,6 +14,7 @@ This package provides video generation for the TokenRing ecosystem. It integrate
 - **Local Video Search**: Search generated videos by filename, prompt, or keywords
 - **Aspect Ratio Support**: Generate square, tall, or wide videos
 - **Model Flexibility**: Select video models through the model registry
+- **Agent-Specific Models**: Each agent can have its own video generation model
 - **RPC Endpoints**: HTTP API for video generation and retrieval
 - **Web Host Integration**: Static file serving is provided by `@tokenring-ai/media-library`
 
@@ -25,7 +24,160 @@ This package provides video generation for the TokenRing ecosystem. It integrate
 bun add @tokenring-ai/video
 ```
 
-## Plugin Configuration
+## Chat Commands
+
+### video reindex
+
+Regenerate video entries in the media library index by scanning video files.
+
+**Usage:**
+
+```bash
+/video reindex
+```
+
+**Behavior:**
+
+1. Delegates to `MediaLibraryService.reindex()` with the `"video"` kind filter
+2. Rebuilds video entries in `media_index.json`
+
+### video model get
+
+Show the currently active video generation model.
+
+**Usage:**
+
+```bash
+/video model get
+```
+
+### video model set <model_name>
+
+Set the video generation model to a specific model by name.
+
+**Usage:**
+
+```bash
+/video model set xai:grok-2-video
+```
+
+### video model select
+
+Open an interactive tree selector to choose a video generation model. Models are grouped by provider and show availability status.
+
+**Usage:**
+
+```bash
+/video model select
+```
+
+### video model reset
+
+Reset the video generation model to the initial configured value.
+
+**Usage:**
+
+```bash
+/video model reset
+```
+
+## Tools
+
+### video_generate
+
+Generate an AI video and save it to the shared media library.
+
+**Tool Definition:**
+
+```typescript
+import { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
+import { z } from "zod";
+
+const video_generate: TokenRingToolDefinition = {
+  name: "video_generate",
+  displayName: "Video Generation/generateVideo",
+  description: "Generate an AI video and save it to the shared media library",
+  inputSchema: z.object({
+    prompt: z.string().describe("Description of the video to generate"),
+    aspectRatio: z.enum(["square", "tall", "wide"]).default("wide"),
+    resolution: z
+      .string()
+      .regex(/^\d+x\d+$/)
+      .describe("Optional resolution such as 1280x720")
+      .exactOptional(),
+    duration: z
+      .number()
+      .positive()
+      .describe("Optional video duration in seconds")
+      .exactOptional(),
+    fps: z.number().int().positive().describe("Optional frames per second").exactOptional(),
+    seed: z.number().int().describe("Optional generation seed").exactOptional(),
+    keywords: z
+      .array(z.string())
+      .describe("Keywords to add to media library metadata")
+      .exactOptional(),
+  }),
+  execute: async (input, agent) => {
+    // Implementation
+  },
+};
+```
+
+**Parameters:**
+
+| Parameter     | Type                           | Required | Description                            |
+|---------------|--------------------------------|----------|----------------------------------------|
+| `prompt`      | `string`                       | Yes      | Description of the video to generate   |
+| `aspectRatio` | `"square" \| "tall" \| "wide"` | No       | Aspect ratio. Default: `wide`          |
+| `resolution`  | `string`                       | No       | Resolution such as `1280x720`          |
+| `duration`    | `number`                       | No       | Video duration in seconds              |
+| `fps`         | `number`                       | No       | Frames per second                      |
+| `seed`        | `number`                       | No       | Optional generation seed               |
+| `keywords`    | `string[]`                     | No       | Keywords stored in media metadata      |
+
+**Aspect Ratios:**
+
+- `square`: `1:1`
+- `tall`: `9:16`
+- `wide`: `16:9`
+
+### video_search
+
+Search generated videos in the media library.
+
+**Tool Definition:**
+
+```typescript
+import { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
+import { z } from "zod";
+
+const video_search: TokenRingToolDefinition = {
+  name: "video_search",
+  displayName: "Video Generation/searchVideos",
+  description: "Search for videos in the media library based on filename, prompt, or keywords",
+  inputSchema: z.object({
+    query: z.string().describe("Search query to match against video metadata"),
+    limit: z
+      .number()
+      .int()
+      .positive()
+      .default(10)
+      .describe("Maximum number of results to return"),
+  }),
+  execute: async (input, agent) => {
+    // Implementation
+  },
+};
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description                                     |
+|-----------|----------|----------|-------------------------------------------------|
+| `query`   | `string` | Yes      | Search query to match against video metadata    |
+| `limit`   | `number` | No       | Maximum number of results to return. Default: 10 |
+
+## Configuration
 
 Configure the video generation plugin alongside the media library plugin:
 
@@ -64,200 +216,9 @@ VideoGenerationServiceConfigSchema = z.object({
 | `defaultModels`       | `string[]` | No       | List of model requirements to try for default selection                    |
 | `agentDefaults.model` | `string`   | No       | Default video generation model for agents                                  |
 
-## Chat Commands
-
-### /video reindex
-
-Regenerate video entries in the media library index by scanning video files.
-
-**Usage:**
-
-```bash
-/video reindex
-```
-
-**Behavior:**
-
-1. Scans the media library directory for video files
-2. Reads metadata with `exiftool-vendored`
-3. Rebuilds video entries in `media_index.json`
-
-### /video model get
-
-Show the currently active video generation model.
-
-```bash
-/video model get
-```
-
-### /video model set <model_name>
-
-Set the video generation model to a specific model by name.
-
-```bash
-/video model set xai:grok-2-video
-```
-
-### /video model select
-
-Open an interactive tree selector to choose a video generation model. Models are grouped by provider and show
-availability status.
-
-```bash
-/video model select
-```
-
-### /video model reset
-
-Reset the video generation model to the initial configured value.
-
-```bash
-/video model reset
-```
-
-## Tools
-
-### video_generate
-
-Generate an AI video and save it to the shared media library.
-
-**Tool Definition:**
-
-```typescript
-import { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
-import { z } from "zod";
-
-const video_generate: TokenRingToolDefinition = {
-  name: "video_generate",
-  displayName: "Video Generation/generateVideo",
-  description: "Generate an AI video and save it to the shared media library",
-  inputSchema: z.object({
-    prompt: z.string().describe("Description of the video to generate"),
-    aspectRatio: z.enum(["square", "tall", "wide"]).default("wide").exactOptional(),
-    resolution: z.string().regex(/^\d+x\d+$/).describe("Optional resolution such as 1280x720").exactOptional(),
-    duration: z.number().positive().describe("Optional video duration in seconds").exactOptional(),
-    fps: z.number().int().positive().describe("Optional frames per second").exactOptional(),
-    seed: z.number().int().describe("Optional generation seed").exactOptional(),
-    keywords: z.array(z.string()).describe("Keywords to add to media library metadata").exactOptional(),
-  }),
-  execute: async (input, agent) => {
-    // Implementation
-  },
-};
-```
-
-**Usage Example:**
-
-```typescript
-const result = await agent.useTool("video_generate", {
-  prompt: "A product demo shot on a clean studio background",
-  aspectRatio: "wide",
-  duration: 6,
-  keywords: ["product", "demo", "studio"],
-});
-
-console.log(result);
-// {
-//   path: ".tokenring/media-library/bright-river.mp4",
-//   fileName: "bright-river.mp4",
-//   mediaType: "video/mp4",
-//   duration: 6
-// }
-```
-
-**Parameters:**
-
-| Parameter     | Type                           | Required | Description                            |
-|---------------|--------------------------------|----------|----------------------------------------|
-| `prompt`      | `string`                       | Yes      | Description of the video to generate   |
-| `aspectRatio` | `"square" \| "tall" \| "wide"` | No       | Aspect ratio. Default: `wide`          |
-| `resolution`  | `string`                       | No       | Resolution such as `1280x720`          |
-| `duration`    | `number`                       | No       | Video duration in seconds              |
-| `fps`         | `number`                       | No       | Frames per second                      |
-| `seed`        | `number`                       | No       | Optional generation seed               |
-| `keywords`    | `string[]`                     | No       | Keywords stored in media metadata      |
-
-**Aspect Ratios:**
-
-- `square`: `1:1`
-- `tall`: `9:16`
-- `wide`: `16:9`
-
-### video_search
-
-Search generated videos in the media library.
-
-**Tool Definition:**
-
-```typescript
-import { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
-import { z } from "zod";
-
-const video_search: TokenRingToolDefinition = {
-  name: "video_search",
-  displayName: "Video Generation/searchVideos",
-  description: "Search for videos in the media library based on filename, prompt, or keywords",
-  inputSchema: z.object({
-    query: z.string().describe("Search query to match against video metadata"),
-    limit: z.number().int().positive().default(10).describe("Maximum number of results to return").exactOptional(),
-  }),
-  execute: async (input, agent) => {
-    // Implementation
-  },
-};
-```
-
-**Usage Example:**
-
-```typescript
-const searchResults = await agent.useTool("video_search", {
-  query: "product demo",
-  limit: 3,
-});
-```
-
-**Parameters:**
-
-| Parameter | Type     | Required | Description                                      |
-|-----------|----------|----------|--------------------------------------------------|
-| `query`   | `string` | Yes      | Search query to match against video metadata     |
-| `limit`   | `number` | No       | Maximum number of results to return. Default: 10 |
-
 ## RPC API
 
 The package exposes an RPC endpoint at `/rpc/video-generation`.
-
-### getVideos
-
-List indexed videos from the media library.
-
-**Input:**
-
-```typescript
-{
-  search?: string;
-  limit?: number;
-}
-```
-
-**Result:**
-
-```typescript
-{
-  videos: Array<{
-    kind: "video";
-    filename: string;
-    mimeType: string;
-    keywords: string[];
-    width?: number;
-    height?: number;
-    duration?: number;
-    prompt?: string;
-    createdAt?: string;
-  }>;
-  count: number;
-}
-```
 
 ### generateVideo
 
@@ -292,7 +253,7 @@ Generate a video for an agent.
 
 ## Service API
 
-### VideoGenerationService
+### VideoGenerationService (Service Layer)
 
 ```typescript
 import { VideoGenerationService } from "@tokenring-ai/video";
@@ -311,8 +272,74 @@ const videoService = agent.requireServiceByType(VideoGenerationService);
 | `generateVideo(options, agent)` | Generate a video and save it to the media library |
 | `reindex(agent)` | Reindex video files in the media library |
 
+## Developer Reference
+
+### Core Components
+
+- **VideoGenerationService**: Main service class that manages video generation operations and model selection
+- **VideoGenerationState**: Agent state slice for persisting the selected video model
+- **Plugin**: TokenRing plugin that registers services, tools, commands, and RPC endpoints
+
+### Services
+
+#### VideoGenerationService (Core Service)
+
+The primary service for video generation operations. Implements the `TokenRingService` interface.
+
+**Constructor:**
+
+```typescript
+constructor(app: TokenRingApp, options: ParsedVideoGenerationConfig)
+```
+
+**Lifecycle:**
+
+- `start()`: Initializes the default video model by scanning available models against configured requirements
+- `attach(agent, creationContext)`: Attaches to agents, initializing state and reporting the selected model
+
+**State Management:**
+
+The service uses `VideoGenerationState` to persist the selected video model per agent. This allows individual agents to have different video models while falling back to the application default.
+
+### RPC Endpoints
+
+**Path:** `/rpc/video-generation`
+
+**Methods:**
+
+- `generateVideo`: Generate a video for a specific agent with optional model override
+
+The RPC endpoint temporarily sets the model for the duration of the request and restores the previous model afterward.
+
+### Exports
+
+```typescript
+export * from "./schema.ts";
+export { VideoGenerationState } from "./state/VideoGenerationState.ts";
+export { default as VideoGenerationService } from "./VideoGenerationService.ts";
+```
+
+**Exported Types:**
+
+- `VideoAspectRatio`: `"square" | "tall" | "wide"`
+- `GenerateVideoOptions`: Options for video generation (includes `prompt`, `aspectRatio`, `resolution`, `duration`, `fps`, `seed`, `keywords`)
+- `VideoGenerationServiceConfig`: Configuration input type
+- `ParsedVideoGenerationConfig`: Configuration output type
+- `VideoGenerationState`: Agent state slice for persisting video model selection
+
+### Testing
+
+```bash
+cd pkg/video
+bun test
+```
+
 ## Related Packages
 
 - `@tokenring-ai/media-library` - Shared media storage, indexing, search, and static serving
 - `@tokenring-ai/image` - Image generation and editing package
 - `@tokenring-ai/audio` - Audio recording, playback, speech, and transcription package
+
+## License
+
+MIT License - see LICENSE file for details.

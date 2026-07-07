@@ -12,7 +12,7 @@ export default {
         agentId: z.string(),
         prompt: z.string(),
         model: z.string().exactOptional(),
-        aspectRatio: z.enum(["square", "tall", "wide"]).default("wide").exactOptional(),
+        aspectRatio: z.enum(["square", "tall", "wide"]).default("wide"),
         resolution: z
           .string()
           .regex(/^\d+x\d+$/)

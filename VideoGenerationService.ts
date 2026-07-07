@@ -14,7 +14,7 @@ export type VideoAspectRatio = "square" | "tall" | "wide";
 
 export type GenerateVideoOptions = {
   prompt: string;
-  aspectRatio?: VideoAspectRatio | undefined;
+  aspectRatio: VideoAspectRatio;
   resolution?: string | undefined;
   duration?: number | undefined;
   fps?: number | undefined;
@@ -23,15 +23,18 @@ export type GenerateVideoOptions = {
   keywords?: string[] | undefined;
 };
 
-function mapAspectRatio(aspectRatio: VideoAspectRatio | undefined): `${number}:${number}` {
-  switch (aspectRatio ?? "wide") {
+function mapAspectRatio(aspectRatio: VideoAspectRatio): `${number}:${number}` {
+  switch (aspectRatio) {
     case "square":
       return "1:1";
     case "tall":
       return "9:16";
     case "wide":
-    default:
       return "16:9";
+    default: {
+      const exhaustive: any = aspectRatio satisfies never;
+      throw new Error(`Unhandled aspect ratio: ${exhaustive}`);
+    }
   }
 }
 
