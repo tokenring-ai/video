@@ -1,11 +1,12 @@
+import { Buffer } from "node:buffer";
 import type Agent from "@tokenring-ai/agent/Agent";
 import type { AgentCreationContext } from "@tokenring-ai/agent/types";
 import { VideoGenerationModelRegistry } from "@tokenring-ai/ai-client/ModelRegistry";
 import type TokenRingApp from "@tokenring-ai/app";
 import type { TokenRingService } from "@tokenring-ai/app/types";
+import { ConfigurationError } from "@tokenring-ai/app/types";
 import MediaLibraryService from "@tokenring-ai/media-library/MediaLibraryService";
 import deepClone from "@tokenring-ai/utility/object/deepClone";
-import { Buffer } from "node:buffer";
 import { type ParsedVideoGenerationConfig, VideoGenerationAgentConfigSchema } from "./schema.ts";
 import { VideoGenerationState } from "./state/VideoGenerationState.ts";
 
@@ -102,7 +103,7 @@ export default class VideoGenerationService implements TokenRingService {
 
   requireModel(agent: Agent): string {
     const model = this.getModel(agent);
-    if (!model) throw new Error("No video generation model is currently selected");
+    if (!model) throw new ConfigurationError(this.name, "No video generation model is currently selected");
     return model;
   }
 
