@@ -4,19 +4,26 @@ Video generation for TokenRing media workflows.
 
 ## Overview
 
-The `@tokenring-ai/video` package provides video generation capabilities for the TokenRing ecosystem. It integrates with `VideoGenerationModelRegistry` from `@tokenring-ai/ai-client` and stores generated videos through `@tokenring-ai/media-library`.
+The `@tokenring-ai/video` package provides video generation capabilities for the
+TokenRing ecosystem. It integrates with `VideoGenerationModelRegistry` from
+`@tokenring-ai/ai-client` and stores generated videos through
+`@tokenring-ai/media-library`.
 
-## Key Features
+## Features
 
 - **AI Video Generation**: Generate videos using configurable video models
-- **Shared Media Storage**: Saves generated videos through `@tokenring-ai/media-library`
+- **Shared Media Storage**: Saves generated videos through
+  `@tokenring-ai/media-library`
 - **Automatic Indexing**: Adds generated video metadata to `media_index.json`
-- **Local Video Search**: Search generated videos by filename, prompt, or keywords
-- **Aspect Ratio Support**: Generate square, tall, or wide videos
+- **Local Video Search**: Search generated videos by filename, prompt, or
+  keywords
+- **Aspect Ratio Support**: Generate square (1:1), tall (9:16), or wide (16:9)
+  videos
 - **Model Flexibility**: Select video models through the model registry
 - **Agent-Specific Models**: Each agent can have its own video generation model
 - **RPC Endpoints**: HTTP API for video generation and retrieval
-- **Web Host Integration**: Static file serving is provided by `@tokenring-ai/media-library`
+- **Web Host Integration**: Static file serving is provided by
+  `@tokenring-ai/media-library`
 
 ## Installation
 
@@ -26,7 +33,7 @@ bun add @tokenring-ai/video
 
 ## Chat Commands
 
-### video reindex
+### /video reindex
 
 Regenerate video entries in the media library index by scanning video files.
 
@@ -41,7 +48,7 @@ Regenerate video entries in the media library index by scanning video files.
 1. Delegates to `MediaLibraryService.reindex()` with the `"video"` kind filter
 2. Rebuilds video entries in `media_index.json`
 
-### video model get
+### /video model get
 
 Show the currently active video generation model.
 
@@ -51,7 +58,7 @@ Show the currently active video generation model.
 /video model get
 ```
 
-### video model set <model_name>
+### /video model set <model_name>
 
 Set the video generation model to a specific model by name.
 
@@ -61,9 +68,10 @@ Set the video generation model to a specific model by name.
 /video model set xai:grok-2-video
 ```
 
-### video model select
+### /video model select
 
-Open an interactive tree selector to choose a video generation model. Models are grouped by provider and show availability status.
+Open an interactive tree selector to choose a video generation model. Models are
+grouped by provider and show availability status.
 
 **Usage:**
 
@@ -71,7 +79,7 @@ Open an interactive tree selector to choose a video generation model. Models are
 /video model select
 ```
 
-### video model reset
+### /video model reset
 
 Reset the video generation model to the initial configured value.
 
@@ -80,6 +88,9 @@ Reset the video generation model to the initial configured value.
 ```bash
 /video model reset
 ```
+
+**Note:** Requires an initial model to be configured in `agentDefaults.model`.
+Fails with a `CommandFailedError` if no initial model is set.
 
 ## Tools
 
@@ -110,7 +121,8 @@ const video_generate: TokenRingToolDefinition = {
       .positive()
       .describe("Optional video duration in seconds")
       .exactOptional(),
-    fps: z.number().int().positive().describe("Optional frames per second").exactOptional(),
+    fps: z.number().int().positive().describe("Optional frames per second")
+      .exactOptional(),
     seed: z.number().int().describe("Optional generation seed").exactOptional(),
     keywords: z
       .array(z.string())
@@ -154,7 +166,8 @@ import { z } from "zod";
 const video_search: TokenRingToolDefinition = {
   name: "video_search",
   displayName: "Video Generation/searchVideos",
-  description: "Search for videos in the media library based on filename, prompt, or keywords",
+  description:
+    "Search for videos in the media library based on filename, prompt, or keywords",
   inputSchema: z.object({
     query: z.string().describe("Search query to match against video metadata"),
     limit: z
@@ -211,10 +224,11 @@ VideoGenerationServiceConfigSchema = z.object({
 
 **Configuration Options:**
 
-| Field                 | Type       | Required | Description                                                                |
-|-----------------------|------------|----------|----------------------------------------------------------------------------|
-| `defaultModels`       | `string[]` | No       | List of model requirements to try for default selection                    |
-| `agentDefaults.model` | `string`   | No       | Default video generation model for agents                                  |
+| Field                 | Type       | Required | Description                                   |
+|-----------------------|------------|----------|-----------------------------------------------|
+| `defaultModels`       | `string[]` | No       | List of model requirements to try for default |
+|                       |            |          | selection                                     |
+| `agentDefaults.model` | `string`   | No       | Default video generation model for agents     |
 
 ## RPC API
 
@@ -251,6 +265,19 @@ Generate a video for an agent.
 }
 ```
 
+**Error Result:**
+
+```typescript
+{
+  status: "agentNotFound";
+}
+```
+
+**Notes:**
+
+- If `model` is provided, it is temporarily set for the duration of the request
+- The previous model is restored after generation completes
+
 ## Service API
 
 ### VideoGenerationService (Service Layer)
@@ -272,19 +299,78 @@ const videoService = agent.requireServiceByType(VideoGenerationService);
 | `generateVideo(options, agent)` | Generate a video and save it to the media library |
 | `reindex(agent)` | Reindex video files in the media library |
 
+### generateVideo Options
+
+The `generateVideo` method accepts the following options:
+
+```typescript
+export type GenerateVideoOptions = {
+  prompt: string;
+  aspectRatio: VideoAspectRatio;
+  resolution?: string | undefined;
+  duration?: number | undefined;
+  fps?: number | undefined;
+  seed?: number | undefined;
+  n?: number | undefined;
+  keywords?: string[] | undefined;
+};
+```
+
+**Parameters:**
+
+| Parameter     | Type                           | Required | Description                            |
+|---------------|--------------------------------|----------|----------------------------------------|
+| `prompt`      | `string`                       | Yes      | Description of the video to generate   |
+| `aspectRatio` | `VideoAspectRatio`             | Yes      | Aspect ratio for the generated video   |
+| `resolution`  | `string`                       | No       | Resolution such as `1280x720`          |
+| `duration`    | `number`                       | No       | Video duration in seconds              |
+| `fps`         | `number`                       | No       | Frames per second                      |
+| `seed`        | `number`                       | No       | Optional generation seed               |
+| `n`           | `number`                       | No       | Number of videos to generate; only the first is returned |
+| `keywords`    | `string[]`                     | No       | Keywords stored in media metadata      |
+
+**Note:** The `n` parameter is available on the service method but is not exposed through the `video_generate` tool or RPC endpoint.
+
+**Return Value:**
+
+```typescript
+{
+  mediaType: string;
+  fileName: string;
+  filePath: string;
+  duration?: number | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  buffer: Buffer;
+}
+```
+
+**File Extension Mapping:**
+
+The generated video file extension is derived from the MIME type returned by
+the model:
+
+- `video/mp4` -> `.mp4`
+- `video/quicktime` -> `.mov`
+- Other types use the MIME subtype (e.g., `video/webm` -> `.webm`)
+
 ## Developer Reference
 
 ### Core Components
 
-- **VideoGenerationService**: Main service class that manages video generation operations and model selection
-- **VideoGenerationState**: Agent state slice for persisting the selected video model
-- **Plugin**: TokenRing plugin that registers services, tools, commands, and RPC endpoints
+- **VideoGenerationService**: Main service class that manages video generation
+  operations and model selection
+- **VideoGenerationState**: Agent state slice for persisting the selected video
+  model
+- **Plugin**: TokenRing plugin that registers services, tools, commands, and RPC
+  endpoints
 
 ### Services
 
 #### VideoGenerationService (Core Service)
 
-The primary service for video generation operations. Implements the `TokenRingService` interface.
+The primary service for video generation operations. Implements the
+`TokenRingService` interface.
 
 **Constructor:**
 
@@ -294,12 +380,17 @@ constructor(app: TokenRingApp, options: ParsedVideoGenerationConfig)
 
 **Lifecycle:**
 
-- `start()`: Initializes the default video model by scanning available models against configured requirements
-- `attach(agent, creationContext)`: Attaches to agents, initializing state and reporting the selected model
+- `start()`: Initializes the default video model by scanning available models
+  against configured requirements. Logs the selected model or an error if no
+  model is configured.
+- `attach(agent, creationContext)`: Attaches to agents, initializing state and
+  reporting the selected model in the agent creation context.
 
 **State Management:**
 
-The service uses `VideoGenerationState` to persist the selected video model per agent. This allows individual agents to have different video models while falling back to the application default.
+The service uses `VideoGenerationState` to persist the selected video model per
+agent. This allows individual agents to have different video models while
+falling back to the application default.
 
 ### RPC Endpoints
 
@@ -307,9 +398,11 @@ The service uses `VideoGenerationState` to persist the selected video model per 
 
 **Methods:**
 
-- `generateVideo`: Generate a video for a specific agent with optional model override
+- `generateVideo`: Generate a video for a specific agent with optional model
+  override
 
-The RPC endpoint temporarily sets the model for the duration of the request and restores the previous model afterward.
+The RPC endpoint temporarily sets the model for the duration of the request and
+restores the previous model afterward.
 
 ### Exports
 
@@ -322,7 +415,8 @@ export { default as VideoGenerationService } from "./VideoGenerationService.ts";
 **Exported Types:**
 
 - `VideoAspectRatio`: `"square" | "tall" | "wide"`
-- `GenerateVideoOptions`: Options for video generation (includes `prompt`, `aspectRatio`, `resolution`, `duration`, `fps`, `seed`, `keywords`)
+- `GenerateVideoOptions`: Options for video generation (includes `prompt`,
+  `aspectRatio`, `resolution`, `duration`, `fps`, `seed`, `n`, `keywords`)
 - `VideoGenerationServiceConfig`: Configuration input type
 - `ParsedVideoGenerationConfig`: Configuration output type
 - `VideoGenerationState`: Agent state slice for persisting video model selection
@@ -331,14 +425,16 @@ export { default as VideoGenerationService } from "./VideoGenerationService.ts";
 
 ```bash
 cd pkg/video
-bun test
+bun run test
 ```
 
 ## Related Packages
 
-- `@tokenring-ai/media-library` - Shared media storage, indexing, search, and static serving
+- `@tokenring-ai/media-library` - Shared media storage, indexing, search, and
+  static serving
 - `@tokenring-ai/image` - Image generation and editing package
-- `@tokenring-ai/audio` - Audio recording, playback, speech, and transcription package
+- `@tokenring-ai/audio` - Audio recording, playback, speech, and transcription
+  package
 
 ## License
 
