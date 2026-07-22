@@ -83,15 +83,18 @@ export default class VideoGenerationService implements TokenRingService {
   }
 
   attach(agent: Agent, creationContext: AgentCreationContext): void {
-    const agentConfig = deepClone(this.options.agentDefaults, agent.getAgentConfigSlice("videoGeneration", VideoGenerationAgentConfigSchema));
-    const initialState = agent.initializeState(VideoGenerationState, agentConfig);
+    const { model = this.defaultModel, ...agentConfig } = deepClone(
+      this.options.agentDefaults,
+      agent.getAgentConfigSlice("videoGeneration", VideoGenerationAgentConfigSchema),
+    );
+    agent.initializeState(VideoGenerationState, {
+      ...agentConfig,
+      ...(model && {
+        model,
+      }),
+    });
 
-    const selectedModel = initialState.model ?? this.defaultModel;
-    creationContext.items.push(`Video Generation Model: ${selectedModel ?? "No model selected"}`);
-  }
-
-  getDefaultModel(): string | null {
-    return this.defaultModel;
+    creationContext.items.push(`Video Generation Model: ${model ?? "No model selected"}`);
   }
 
   getModel(agent: Agent): string | null {
@@ -162,8 +165,6 @@ export default class VideoGenerationService implements TokenRingService {
       },
       agent,
     );
-
-    agent.infoMessage(`[${this.name}] Video saved: ${media.filePath}`);
 
     return {
       mediaType: videoResult.mediaType,
