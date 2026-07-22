@@ -10,14 +10,17 @@ async function execute(args: z.output<typeof inputSchema>, agent: Agent): Promis
   const videoService = agent.requireServiceByType(VideoGenerationService);
   const result = await videoService.generateVideo(args, agent);
 
-  return JSON.stringify({
-    path: result.filePath,
-    fileName: result.fileName,
-    mediaType: result.mediaType,
-    duration: result.duration,
-    width: result.width,
-    height: result.height,
-  });
+  return {
+    message: `**Video** Generated video ${result.filePath}`,
+    result: JSON.stringify({
+      path: result.filePath,
+      fileName: result.fileName,
+      mediaType: result.mediaType,
+      duration: result.duration,
+      width: result.width,
+      height: result.height,
+    }),
+  };
 }
 
 const description = "Generate an AI video and save it to the shared media library";
