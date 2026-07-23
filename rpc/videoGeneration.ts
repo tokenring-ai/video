@@ -18,24 +18,16 @@ export default createRPCEndpoint(VideoGenerationRpcSchema, {
     }
 
     try {
-      const result = await videoService.generateVideo(
-        {
-          prompt: args.prompt,
-          aspectRatio: args.aspectRatio,
-          resolution: args.resolution,
-          duration: args.duration,
-          fps: args.fps,
-          seed: args.seed,
-          keywords: args.keywords,
-        },
-        agent,
-      );
+      const result = await videoService.generateVideo(args.request, agent);
 
       return {
         status: "success" as const,
         filename: result.fileName,
         mimeType: result.mediaType,
         message: `Generated: ${result.fileName}`,
+        ...(result.width !== undefined && { width: result.width }),
+        ...(result.height !== undefined && { height: result.height }),
+        ...(result.duration !== undefined && { duration: result.duration }),
       };
     } finally {
       if (args.model) {

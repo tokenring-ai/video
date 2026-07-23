@@ -8,7 +8,20 @@ const displayName = "Video Generation/generateVideo";
 
 async function execute(args: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
   const videoService = agent.requireServiceByType(VideoGenerationService);
-  const result = await videoService.generateVideo(args, agent);
+
+  const { quality, shape, ...extra } = args;
+
+  const result = await videoService.generateVideo(
+    {
+      ...extra,
+      sizing: {
+        method: "guided",
+        quality,
+        shape,
+      },
+    },
+    agent,
+  );
 
   return {
     message: `**Video** Generated video ${result.filePath}`,
@@ -27,12 +40,8 @@ const description = "Generate an AI video and save it to the shared media librar
 
 const inputSchema = z.object({
   prompt: z.string().describe("Description of the video to generate"),
-  aspectRatio: z.enum(["square", "tall", "wide"]).default("wide"),
-  resolution: z
-    .string()
-    .regex(/^\d+x\d+$/)
-    .describe("Optional resolution such as 1280x720")
-    .exactOptional(),
+  quality: z.enum(["ultra", "high", "standard", "low"]).describe("Quality of the generated video"),
+  shape: z.enum(["square", "landscape", "portrait", "ultrawide", "ultratall"]).describe("Shape of the generated video"),
   duration: z.number().positive().describe("Optional video duration in seconds").exactOptional(),
   fps: z.number().int().positive().describe("Optional frames per second").exactOptional(),
   seed: z.number().int().describe("Optional generation seed").exactOptional(),

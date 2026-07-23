@@ -2,55 +2,20 @@ import { Buffer } from "node:buffer";
 import type Agent from "@tokenring-ai/agent/Agent";
 import type { AgentCreationContext } from "@tokenring-ai/agent/types";
 import { VideoGenerationModelRegistry } from "@tokenring-ai/ai-client/ModelRegistry";
+import { VideoSizingSchema } from "@tokenring-ai/ai-client/schema.client";
 import type TokenRingApp from "@tokenring-ai/app";
 import type { TokenRingService } from "@tokenring-ai/app/types";
 import { ConfigurationError } from "@tokenring-ai/app/types";
 import MediaLibraryService from "@tokenring-ai/media-library/MediaLibraryService";
 import deepClone from "@tokenring-ai/utility/object/deepClone";
+import type { GenerateVideoOptions } from "./schema.ts";
 import { type ParsedVideoGenerationConfig, VideoGenerationAgentConfigSchema } from "./schema.ts";
 import { VideoGenerationState } from "./state/VideoGenerationState.ts";
-
-export type VideoAspectRatio = "square" | "tall" | "wide";
-
-export type GenerateVideoOptions = {
-  prompt: string;
-  aspectRatio: VideoAspectRatio;
-  resolution?: string | undefined;
-  duration?: number | undefined;
-  fps?: number | undefined;
-  seed?: number | undefined;
-  n?: number | undefined;
-  keywords?: string[] | undefined;
-};
-
-function mapAspectRatio(aspectRatio: VideoAspectRatio): `${number}:${number}` {
-  switch (aspectRatio) {
-    case "square":
-      return "1:1";
-    case "tall":
-      return "9:16";
-    case "wide":
-      return "16:9";
-    default: {
-      const exhaustive: any = aspectRatio satisfies never;
-      throw new Error(`Unhandled aspect ratio: ${exhaustive}`);
-    }
-  }
-}
 
 function extensionFromMimeType(mimeType: string): string {
   const subtype = mimeType.split("/")[1]?.split(";")[0];
   if (!subtype) return "mp4";
   return subtype === "quicktime" ? "mov" : subtype;
-}
-
-function parseResolution(resolution: string | undefined): { width?: number; height?: number } {
-  if (!resolution) return {};
-  const [width, height] = resolution.split("x").map(value => Number.parseInt(value, 10));
-  return {
-    ...(Number.isFinite(width) && { width }),
-    ...(Number.isFinite(height) && { height }),
-  };
 }
 
 export default class VideoGenerationService implements TokenRingService {
@@ -118,7 +83,7 @@ export default class VideoGenerationService implements TokenRingService {
   }
 
   async generateVideo(
-    options: GenerateVideoOptions,
+    { keywords, sizing, ...request }: GenerateVideoOptions,
     agent: Agent,
   ): Promise<{
     mediaType: string;
@@ -133,34 +98,34 @@ export default class VideoGenerationService implements TokenRingService {
     const mediaLibrary = agent.requireServiceByType(MediaLibraryService);
     const model = this.requireModel(agent);
 
-    agent.infoMessage(`[${this.name}] Generating video: "${options.prompt}"`);
+    agent.infoMessage(`[${this.name}] Generating video: "${request.prompt}"`);
 
     const videoClient = videoModelRegistry.getClient(model);
-    const aspectRatio = mapAspectRatio(options.aspectRatio);
+    const determinedSizing = videoClient.determineBestSizing(VideoSizingSchema.parse(sizing));
+
     const [videoResult] = await videoClient.generateVideo(
       {
-        prompt: options.prompt,
-        aspectRatio,
-        ...(options.resolution && { resolution: options.resolution as `${number}x${number}` }),
-        ...(options.duration !== undefined && { duration: options.duration }),
-        ...(options.fps !== undefined && { fps: options.fps }),
-        ...(options.seed !== undefined && { seed: options.seed }),
-        ...(options.n !== undefined && { n: options.n }),
+        ...request,
+        ...(determinedSizing?.aspectRatio && { aspectRatio: determinedSizing.aspectRatio }),
+        ...(determinedSizing?.resolution && { resolution: determinedSizing.resolution }),
       },
       agent,
     );
 
     const videoBuffer = Buffer.from(videoResult.uint8Array);
-    const dimensions = parseResolution(options.resolution);
+    const dimensions = {
+      ...(determinedSizing?.width !== undefined && { width: determinedSizing.width }),
+      ...(determinedSizing?.height !== undefined && { height: determinedSizing.height }),
+    };
     const media = await mediaLibrary.writeMedia(
       {
         kind: "video",
         buffer: videoBuffer,
         mimeType: videoResult.mediaType,
         extension: extensionFromMimeType(videoResult.mediaType),
-        duration: options.duration,
-        keywords: options.keywords ?? [],
-        prompt: options.prompt,
+        duration: request.duration,
+        keywords: keywords ?? [],
+        prompt: request.prompt,
         ...dimensions,
       },
       agent,
@@ -171,7 +136,7 @@ export default class VideoGenerationService implements TokenRingService {
       buffer: videoBuffer,
       fileName: media.filename,
       filePath: media.filePath,
-      duration: options.duration,
+      duration: request.duration,
       ...dimensions,
     };
   }

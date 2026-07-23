@@ -1,6 +1,7 @@
 import type { RPCSchema } from "@tokenring-ai/rpc/types";
 import { AgentNotFoundSchema, SuccessSchema } from "@tokenring-ai/rpc/types";
 import { z } from "zod";
+import { GenerateVideoOptionsSchema } from "../schema.ts";
 
 export default {
   name: "Video Generation RPC",
@@ -10,23 +11,17 @@ export default {
       type: "mutation",
       input: z.object({
         agentId: z.string(),
-        prompt: z.string(),
         model: z.string().exactOptional(),
-        aspectRatio: z.enum(["square", "tall", "wide"]).default("wide"),
-        resolution: z
-          .string()
-          .regex(/^\d+x\d+$/)
-          .exactOptional(),
-        duration: z.number().positive().exactOptional(),
-        fps: z.number().int().positive().exactOptional(),
-        seed: z.number().int().exactOptional(),
-        keywords: z.array(z.string()).exactOptional(),
+        request: GenerateVideoOptionsSchema,
       }),
       result: z.discriminatedUnion("status", [
         SuccessSchema.extend({
           filename: z.string(),
           mimeType: z.string(),
           message: z.string(),
+          width: z.number().exactOptional(),
+          height: z.number().exactOptional(),
+          duration: z.number().exactOptional(),
         }),
         AgentNotFoundSchema,
       ]),
