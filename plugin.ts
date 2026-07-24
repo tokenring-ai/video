@@ -27,5 +27,5 @@ export default {
       rpcService.registerEndpoint(videoGenerationRPC);
     });
   },
-  config: packageConfigSchema,
+  configSchema: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;
