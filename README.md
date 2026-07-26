@@ -12,13 +12,11 @@ TokenRing ecosystem. It integrates with `VideoGenerationModelRegistry` from
 ## Features
 
 - **AI Video Generation**: Generate videos using configurable video models
+- **Guided Sizing**: Quality and shape-based sizing with automatic resolution
+  determination
 - **Shared Media Storage**: Saves generated videos through
   `@tokenring-ai/media-library`
 - **Automatic Indexing**: Adds generated video metadata to `media_index.json`
-- **Local Video Search**: Search generated videos by filename, prompt, or
-  keywords
-- **Aspect Ratio Support**: Generate square (1:1), tall (9:16), or wide (16:9)
-  videos
 - **Model Flexibility**: Select video models through the model registry
 - **Agent-Specific Models**: Each agent can have its own video generation model
 - **RPC Endpoints**: HTTP API for video generation and retrieval
@@ -110,20 +108,28 @@ const video_generate: TokenRingToolDefinition = {
   description: "Generate an AI video and save it to the shared media library",
   inputSchema: z.object({
     prompt: z.string().describe("Description of the video to generate"),
-    aspectRatio: z.enum(["square", "tall", "wide"]).default("wide"),
-    resolution: z
-      .string()
-      .regex(/^\d+x\d+$/)
-      .describe("Optional resolution such as 1280x720")
-      .exactOptional(),
+    quality: z
+      .enum(["ultra", "high", "standard", "low"])
+      .describe("Quality of the generated video"),
+    shape: z
+      .enum(["square", "landscape", "portrait", "ultrawide", "ultratall"])
+      .describe("Shape of the generated video"),
     duration: z
       .number()
       .positive()
       .describe("Optional video duration in seconds")
       .exactOptional(),
-    fps: z.number().int().positive().describe("Optional frames per second")
+    fps: z
+      .number()
+      .int()
+      .positive()
+      .describe("Optional frames per second")
       .exactOptional(),
-    seed: z.number().int().describe("Optional generation seed").exactOptional(),
+    seed: z
+      .number()
+      .int()
+      .describe("Optional generation seed")
+      .exactOptional(),
     keywords: z
       .array(z.string())
       .describe("Keywords to add to media library metadata")
@@ -137,58 +143,23 @@ const video_generate: TokenRingToolDefinition = {
 
 **Parameters:**
 
-| Parameter     | Type                           | Required | Description                            |
-|---------------|--------------------------------|----------|----------------------------------------|
-| `prompt`      | `string`                       | Yes      | Description of the video to generate   |
-| `aspectRatio` | `"square" \| "tall" \| "wide"` | No       | Aspect ratio. Default: `wide`          |
-| `resolution`  | `string`                       | No       | Resolution such as `1280x720`          |
-| `duration`    | `number`                       | No       | Video duration in seconds              |
-| `fps`         | `number`                       | No       | Frames per second                      |
-| `seed`        | `number`                       | No       | Optional generation seed               |
-| `keywords`    | `string[]`                     | No       | Keywords stored in media metadata      |
+| Parameter  | Type                                              | Required | Description                            |
+|------------|---------------------------------------------------|----------|----------------------------------------|
+| `prompt`   | `string`                                          | Yes      | Description of the video to generate   |
+| `quality`  | `"ultra" \| "high" \| "standard" \| "low"`        | Yes      | Quality of the generated video         |
+| `shape`    | `"square" \| "landscape" \| "portrait" \| "ultrawide" \| "ultratall"` | Yes | Shape of the generated video |
+| `duration` | `number`                                          | No       | Video duration in seconds              |
+| `fps`      | `number`                                          | No       | Frames per second                      |
+| `seed`     | `number`                                          | No       | Optional generation seed               |
+| `keywords` | `string[]`                                        | No       | Keywords stored in media metadata      |
 
-**Aspect Ratios:**
+**Shapes:**
 
-- `square`: `1:1`
-- `tall`: `9:16`
-- `wide`: `16:9`
-
-### video_search
-
-Search generated videos in the media library.
-
-**Tool Definition:**
-
-```typescript
-import { TokenRingToolDefinition } from "@tokenring-ai/chat/schema";
-import { z } from "zod";
-
-const video_search: TokenRingToolDefinition = {
-  name: "video_search",
-  displayName: "Video Generation/searchVideos",
-  description:
-    "Search for videos in the media library based on filename, prompt, or keywords",
-  inputSchema: z.object({
-    query: z.string().describe("Search query to match against video metadata"),
-    limit: z
-      .number()
-      .int()
-      .positive()
-      .default(10)
-      .describe("Maximum number of results to return"),
-  }),
-  execute: async (input, agent) => {
-    // Implementation
-  },
-};
-```
-
-**Parameters:**
-
-| Parameter | Type     | Required | Description                                     |
-|-----------|----------|----------|-------------------------------------------------|
-| `query`   | `string` | Yes      | Search query to match against video metadata    |
-| `limit`   | `number` | No       | Maximum number of results to return. Default: 10 |
+- `square`: Square format (1:1)
+- `landscape`: Wide format (16:9)
+- `portrait`: Tall format (9:16)
+- `ultrawide`: Ultrawide format (21:9)
+- `ultratall`: Ultratall format (9:21)
 
 ## Configuration
 
@@ -213,12 +184,21 @@ videoGeneration:
 import { VideoGenerationServiceConfigSchema } from "@tokenring-ai/video";
 
 VideoGenerationServiceConfigSchema = z.object({
-  defaultModels: z.array(z.string()).default([]),
+  defaultModels: z
+    .array(z.string())
+    .default([])
+    .meta({
+      description: "Model name patterns offered for video generation (* matches all)",
+    }),
   agentDefaults: z
     .object({
-      model: z.string().exactOptional(),
+      model: z
+        .string()
+        .exactOptional()
+        .meta({ description: "Video model new agents use by default" }),
     })
-    .default({}),
+    .default({})
+    .meta({ label: "Agent Defaults" }),
 });
 ```
 
@@ -227,7 +207,7 @@ VideoGenerationServiceConfigSchema = z.object({
 | Field                 | Type       | Required | Description                                   |
 |-----------------------|------------|----------|-----------------------------------------------|
 | `defaultModels`       | `string[]` | No       | List of model requirements to try for default |
-|                       |            |          | selection                                     |
+|                       |            |          | selection (`*` matches all)                   |
 | `agentDefaults.model` | `string`   | No       | Default video generation model for agents     |
 
 ## RPC API
@@ -243,14 +223,19 @@ Generate a video for an agent.
 ```typescript
 {
   agentId: string;
-  prompt: string;
   model?: string;
-  aspectRatio?: "square" | "tall" | "wide";
-  resolution?: string;
-  duration?: number;
-  fps?: number;
-  seed?: number;
-  keywords?: string[];
+  request: {
+    prompt: string;
+    sizing: {
+      method: "guided";
+      quality: "ultra" | "high" | "standard" | "low";
+      shape: "square" | "landscape" | "portrait" | "ultrawide" | "ultratall";
+    };
+    duration?: number;
+    fps?: number;
+    seed?: number;
+    keywords?: string[];
+  };
 }
 ```
 
@@ -262,6 +247,9 @@ Generate a video for an agent.
   filename: string;
   mimeType: string;
   message: string;
+  width?: number;
+  height?: number;
+  duration?: number;
 }
 ```
 
@@ -292,7 +280,6 @@ const videoService = agent.requireServiceByType(VideoGenerationService);
 
 | Method | Description |
 |--------|-------------|
-| `getDefaultModel()` | Return the application default video model |
 | `getModel(agent)` | Return the active video model for an agent |
 | `setModel(model, agent)` | Set or clear the active video model |
 | `requireModel(agent)` | Return the active model or throw if none is selected |
@@ -306,30 +293,28 @@ The `generateVideo` method accepts the following options:
 ```typescript
 export type GenerateVideoOptions = {
   prompt: string;
-  aspectRatio: VideoAspectRatio;
-  resolution?: string | undefined;
+  sizing: {
+    method: "guided";
+    quality: "ultra" | "high" | "standard" | "low";
+    shape: "square" | "landscape" | "portrait" | "ultrawide" | "ultratall";
+  };
   duration?: number | undefined;
   fps?: number | undefined;
   seed?: number | undefined;
-  n?: number | undefined;
   keywords?: string[] | undefined;
 };
 ```
 
 **Parameters:**
 
-| Parameter     | Type                           | Required | Description                            |
-|---------------|--------------------------------|----------|----------------------------------------|
-| `prompt`      | `string`                       | Yes      | Description of the video to generate   |
-| `aspectRatio` | `VideoAspectRatio`             | Yes      | Aspect ratio for the generated video   |
-| `resolution`  | `string`                       | No       | Resolution such as `1280x720`          |
-| `duration`    | `number`                       | No       | Video duration in seconds              |
-| `fps`         | `number`                       | No       | Frames per second                      |
-| `seed`        | `number`                       | No       | Optional generation seed               |
-| `n`           | `number`                       | No       | Number of videos to generate; only the first is returned |
-| `keywords`    | `string[]`                     | No       | Keywords stored in media metadata      |
-
-**Note:** The `n` parameter is available on the service method but is not exposed through the `video_generate` tool or RPC endpoint.
+| Parameter  | Type                                              | Required | Description                            |
+|------------|---------------------------------------------------|----------|----------------------------------------|
+| `prompt`   | `string`                                          | Yes      | Description of the video to generate   |
+| `sizing`   | `VideoSizing`                                     | Yes      | Guided sizing with quality and shape   |
+| `duration` | `number`                                          | No       | Video duration in seconds              |
+| `fps`      | `number`                                          | No       | Frames per second                      |
+| `seed`     | `number`                                          | No       | Optional generation seed               |
+| `keywords` | `string[]`                                        | No       | Keywords stored in media metadata      |
 
 **Return Value:**
 
@@ -414,9 +399,8 @@ export { default as VideoGenerationService } from "./VideoGenerationService.ts";
 
 **Exported Types:**
 
-- `VideoAspectRatio`: `"square" | "tall" | "wide"`
 - `GenerateVideoOptions`: Options for video generation (includes `prompt`,
-  `aspectRatio`, `resolution`, `duration`, `fps`, `seed`, `n`, `keywords`)
+  `sizing`, `duration`, `fps`, `seed`, `keywords`)
 - `VideoGenerationServiceConfig`: Configuration input type
 - `ParsedVideoGenerationConfig`: Configuration output type
 - `VideoGenerationState`: Agent state slice for persisting video model selection
@@ -424,7 +408,7 @@ export { default as VideoGenerationService } from "./VideoGenerationService.ts";
 ### Testing
 
 ```bash
-cd pkg/video
+cd plugin/video
 bun run test
 ```
 
