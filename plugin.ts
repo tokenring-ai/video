@@ -19,13 +19,16 @@ export default {
   displayName: "Video Generation",
   version: packageJSON.version,
   description: packageJSON.description,
-  install(app, config) {
-    app.addServices(new VideoGenerationService(app, config.videoGeneration));
+  install(app) {
+    app.addServices(new VideoGenerationService(app));
     app.waitForService(ChatService, chatService => chatService.addTools(...tools));
     app.waitForService(AgentCommandService, agentCommandService => agentCommandService.addAgentCommands(agentCommands));
     app.waitForService(RpcService, rpcService => {
       rpcService.registerEndpoint(videoGenerationRPC);
     });
+  },
+  reconfigure(app, config) {
+    app.requireService(VideoGenerationService).reconfigure(config.videoGeneration);
   },
   configSchema: packageConfigSchema,
 } satisfies TokenRingPlugin<typeof packageConfigSchema>;

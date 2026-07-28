@@ -17,6 +17,7 @@ export const VideoGenerationServiceConfigSchema = z
       .default({})
       .meta({ label: "Agent Defaults" }),
   })
+  .prefault({})
   .meta({ label: "Video Generation" });
 
 export type VideoGenerationServiceConfig = z.input<typeof VideoGenerationServiceConfigSchema>;

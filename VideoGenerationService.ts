@@ -9,7 +9,7 @@ import { ConfigurationError } from "@tokenring-ai/app/types";
 import MediaLibraryService from "@tokenring-ai/media-library/MediaLibraryService";
 import deepClone from "@tokenring-ai/utility/object/deepClone";
 import type { GenerateVideoOptions } from "./schema.ts";
-import { type ParsedVideoGenerationConfig, VideoGenerationAgentConfigSchema } from "./schema.ts";
+import { type ParsedVideoGenerationConfig, VideoGenerationAgentConfigSchema, VideoGenerationServiceConfigSchema } from "./schema.ts";
 import { VideoGenerationState } from "./state/VideoGenerationState.ts";
 
 function extensionFromMimeType(mimeType: string): string {
@@ -23,11 +23,18 @@ export default class VideoGenerationService implements TokenRingService {
   description = "Video generation backed by the shared media library";
 
   defaultModel: string | null = null;
+  private options = VideoGenerationServiceConfigSchema.parse({});
 
   constructor(
     private app: TokenRingApp,
-    private options: ParsedVideoGenerationConfig,
-  ) {}
+    options?: ParsedVideoGenerationConfig,
+  ) {
+    if (options) this.options = options;
+  }
+
+  reconfigure(options: ParsedVideoGenerationConfig): void {
+    this.options = options;
+  }
 
   start() {
     const videoModelRegistry = this.app.requireService(VideoGenerationModelRegistry);
