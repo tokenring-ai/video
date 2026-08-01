@@ -4,7 +4,7 @@ import VideoGenerationService from "../VideoGenerationService.ts";
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
 async function execute({ agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
-  const videoService = agent.requireServiceByType(VideoGenerationService);
+  const videoService = agent.requireService(VideoGenerationService);
   await videoService.reindex(agent);
   return "Video media re-indexed successfully.";
 }

@@ -273,7 +273,7 @@ Generate a video for an agent.
 ```typescript
 import { VideoGenerationService } from "@tokenring-ai/video";
 
-const videoService = agent.requireServiceByType(VideoGenerationService);
+const videoService = agent.requireService(VideoGenerationService);
 ```
 
 ### Methods

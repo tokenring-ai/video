@@ -6,8 +6,8 @@ import VideoGenerationService from "../../../VideoGenerationService.ts";
 const inputSchema = {} as const satisfies AgentCommandInputSchema;
 
 async function execute({ agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
-  const registry = agent.requireServiceByType(VideoGenerationModelRegistry);
-  const videoService = agent.requireServiceByType(VideoGenerationService);
+  const registry = agent.requireService(VideoGenerationModelRegistry);
+  const videoService = agent.requireService(VideoGenerationService);
   const modelsByProvider = await agent.busyWithActivity("Checking online status of models...", registry.getModelsByProvider());
   const tree: TreeLeaf[] = Object.entries(modelsByProvider)
     .sort(([a], [b]) => a.localeCompare(b))

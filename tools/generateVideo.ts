@@ -7,7 +7,7 @@ const name = "video_generate";
 const displayName = "Video Generation/generateVideo";
 
 async function execute(args: z.output<typeof inputSchema>, agent: Agent): Promise<TokenRingToolResult> {
-  const videoService = agent.requireServiceByType(VideoGenerationService);
+  const videoService = agent.requireService(VideoGenerationService);
 
   const { quality, shape, ...extra } = args;
 

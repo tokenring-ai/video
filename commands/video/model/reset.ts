@@ -8,7 +8,7 @@ const inputSchema = {} as const satisfies AgentCommandInputSchema;
 function execute({ agent }: AgentCommandInputType<typeof inputSchema>): Promise<string> {
   const initialModel = agent.getState(VideoGenerationState).initialConfig.model;
   if (!initialModel) throw new CommandFailedError("No initial video model configured");
-  agent.requireServiceByType(VideoGenerationService).setModel(initialModel, agent);
+  agent.requireService(VideoGenerationService).setModel(initialModel, agent);
   return Promise.resolve(`Video model reset to ${initialModel}`);
 }
 

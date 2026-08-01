@@ -86,7 +86,7 @@ export default class VideoGenerationService implements TokenRingService {
   }
 
   async reindex(agent: Agent): Promise<void> {
-    await agent.requireServiceByType(MediaLibraryService).reindex(agent, ["video"]);
+    await agent.requireService(MediaLibraryService).reindex(agent, ["video"]);
   }
 
   async generateVideo(
@@ -101,8 +101,8 @@ export default class VideoGenerationService implements TokenRingService {
     height?: number | undefined;
     buffer: Buffer;
   }> {
-    const videoModelRegistry = agent.requireServiceByType(VideoGenerationModelRegistry);
-    const mediaLibrary = agent.requireServiceByType(MediaLibraryService);
+    const videoModelRegistry = agent.requireService(VideoGenerationModelRegistry);
+    const mediaLibrary = agent.requireService(MediaLibraryService);
     const model = this.requireModel(agent);
 
     agent.infoMessage(`[${this.name}] Generating video: "${request.prompt}"`);
