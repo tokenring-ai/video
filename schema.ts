@@ -9,7 +9,7 @@ export const VideoGenerationAgentConfigSchema = z
 
 export const VideoGenerationServiceConfigSchema = z
   .object({
-    defaultModels: z.array(z.string()).default([]).meta({ description: "Model name patterns offered for video generation (* matches all)" }),
+    defaultModels: z.array(z.string()).default(["*"]).meta({ description: "Model name patterns offered for video generation (* matches all)" }),
     agentDefaults: z
       .object({
         model: z.string().exactOptional().meta({ description: "Video model new agents use by default" }),
